@@ -10,8 +10,8 @@ import os
 
 
 # Important Note ---
-# change the year value for which you want to scrape the data
-year_list = [year for year in range(2008, 2020)]
+# change the value for which you want to scrape the data defaults to 2008-2019
+year_list = [year for year in range(2019,2007,-1)]
 
 
 # project paths
