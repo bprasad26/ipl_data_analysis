@@ -581,6 +581,33 @@ def get_bowling_data(year):
     # return dataframe
     return df
 
+def get_wins_losses_data():
+    win_losses = pd.read_html("https://en.wikipedia.org/wiki/List_of_Indian_Premier_League_records_and_statistics")
+    # select the win losses table
+    win_losses_df = win_losses[3]
+    # drop the last 
+    win_losses_df.drop(win_losses_df.index[-1], inplace=True)
+    #change names of the teams
+    val_dict = {"CSK": "Chennai Super Kings",
+           "DC": "Delhi Capitals",
+           "KXIP": "Kings XI Punjab",
+           "KKR": "Kolkata Knight Riders",
+           "MI": "Mumbai Indians",
+           "RR": "Rajasthan Royals",
+           "RCB": "Royal Challengers Banglore",
+           "SRH": "Sunrisers Hyderabad"}
+
+    win_losses_df["Team"] = win_losses_df["Team"].map(val_dict)
+    # rename the column
+    win_losses_df.rename(columns={'Win\xa0%':'Win %'}, inplace=True)
+    # columns list
+    cols_list = ['Matches', 'Won', 'Lost', 'No Result', 'Tied and won', 'Tied and lost','Win %', 'Titles']
+    # convert data types
+    for col in cols_list:
+        win_losses_df[col] = pd.to_numeric(win_losses_df[col], errors='coerce').fillna(0)
+        
+    return win_losses_df
+
 
 if __name__ == "__main__":
 
@@ -618,6 +645,13 @@ if __name__ == "__main__":
     print("Getting Fastest Centuries Data.")
     fastest_centuries_df = combine_all_years_data(get_fastest_centuries_data, year_list)
     save_dataframe(fastest_centuries_df, "fastest_centuries.csv", file_path)
+    print("Completed")
+    print()
+    
+    # get wins losses data
+    print("Getting Wins Losses Data")
+    wins_losses_df = get_wins_losses_data()
+    save_dataframe(wins_losses_df, "wins_losses.csv",file_path)
     print("Completed")
     print()
 
