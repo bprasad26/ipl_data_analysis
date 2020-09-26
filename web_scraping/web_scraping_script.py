@@ -608,6 +608,36 @@ def get_wins_losses_data():
         
     return win_losses_df
 
+def batting_all_time_record(df):
+    """This Function create the aggregated all the season data
+    into a single dataframe.
+    """
+    agg_dict = {
+        "Mat": "sum",
+        "Inns": "sum",
+        "NO": "sum",
+        "Runs": "sum",
+        "HS": "max",
+        "Avg": "mean",
+        "BF": "sum",
+        "SR": "mean",
+        "100": "sum",
+        "50": "sum",
+        "4s": "sum",
+        "6s": "sum",
+    }
+    batting_all_time = (
+        batting.groupby("PLAYER")
+        .aggregate(agg_dict)
+        .reset_index()
+        .sort_values(by="Runs", ascending=False)
+    )
+    batting_all_time = batting_all_time.round(2)
+
+    batting_all_time.index = np.arange(0, len(batting_all_time))
+
+    return batting_all_time
+
 
 if __name__ == "__main__":
 
@@ -631,6 +661,14 @@ if __name__ == "__main__":
     print("Getting Batting Data")
     batting_df = combine_all_years_data(get_batting_data, year_list)
     save_dataframe(batting_df, "batting.csv", file_path)
+    print("Completed")
+    print()
+    
+    # create batting aggregated data
+    print("Creating batting aggregated data")
+    batting = load_data("batting.csv")
+    batting_all_time = batting_all_time_record(batting)
+    save_dataframe(batting_all_time, "batting_all_time.csv", file_path)
     print("Completed")
     print()
 
