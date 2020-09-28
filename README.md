@@ -4,7 +4,7 @@
 
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)   [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/bprasad26/ipl_data_analysis/blob/master/LICENSE) [![Ask Me Anything !](https://img.shields.io/badge/Ask%20me-anything-1abc9c.svg)](https://www.lifewithdata.com/contact)
 
-![IPL-WallPaper](https://github.com/bprasad26/ipl_data_analysis/blob/master/ipl-wallpaper.jpg?raw=true)
+![IPL-WallPaper](https://github.com/bprasad26/ipl_data_analysis/blob/master/wallpaper.jpg?raw=true)
 
 
 
