@@ -29,6 +29,7 @@ def load_data(filename, file_path=file_path):
     return pd.read_csv(csv_path)
 
 
+external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # read the data
 points_table = load_data("points_table.csv")
 points_table["Net R/R"] = points_table["Net R/R"].round(3)
@@ -102,6 +103,47 @@ runs_kde_plot.update_layout(
 )
 
 
+# plot strike rate
+strike_rate_graph = px.scatter(
+    batting[batting["Team"] != "Nan"],
+    x="SR",
+    y="Runs",
+    color="Team",
+    hover_name="PLAYER",
+    hover_data=["Season"],
+    trendline="ols",
+)
+strike_rate_graph.update_layout(
+    title="Runs Vs Strike Rate", xaxis=dict(title="Strike Rate")
+)
+
+
+# plot 4s
+fours_graph = px.scatter(
+    batting[batting["Team"] != "Nan"],
+    x="4s",
+    y="Runs",
+    color="Team",
+    hover_name="PLAYER",
+    hover_data=["Season"],
+    trendline="ols",
+)
+fours_graph.update_layout(title="Runs Vs 4s")
+
+
+# plot 6s graph
+sixes_graph = px.scatter(
+    batting[batting["Team"] != "Nan"],
+    x="6s",
+    y="Runs",
+    color="Team",
+    hover_name="PLAYER",
+    hover_data=["Season"],
+    trendline="ols",
+)
+sixes_graph.update_layout(title="Runs Vs 6s")
+
+
 app = dash.Dash()
 
 
@@ -129,6 +171,7 @@ app.layout = html.Div(
         ##### Points Table
         html.Div(
             [
+                html.Div([], style={"height": "100px"}),
                 html.H2("Points Table"),
                 html.Div(
                     [
@@ -179,6 +222,7 @@ app.layout = html.Div(
             ]
         ),
         ####### Team Wins and Losses Table
+        html.Div([], style={"height": "45px"}),
         html.Div(
             [
                 html.H2("Team Wins, losses and draws"),
@@ -215,11 +259,13 @@ app.layout = html.Div(
             style={"margin": "40px 0", "width": "70%", "display": "inline-block"},
         ),
         ###### Batting stats
+        html.Div([], style={"height": "45px"}),
         html.H1("Batting Records"),
         html.Div(
             [
+                html.Div([], style={"height": "25px"}),
                 html.H2("Player Runs Over Time"),
-                html.Label("Select Players"),
+                html.B("Select Players"),
                 html.P("Use dropdown to select multiple players or remove them."),
                 dcc.Dropdown(
                     id="select-player-ts",
@@ -227,13 +273,7 @@ app.layout = html.Div(
                         {"label": player, "value": player}
                         for player in batting_players_list
                     ],
-                    value=[
-                        "Virat Kohli",
-                        "Rohit Sharma",
-                        "MS Dhoni",
-                        "David Warner",
-                        "KL Rahul",
-                    ],
+                    value=["Virat Kohli", "Rohit Sharma", "David Warner", "KL Rahul",],
                     multi=True,
                 ),
                 # Players Runs Time-Series Chart
@@ -242,6 +282,7 @@ app.layout = html.Div(
             style={"margin": "40px 0", "width": "80%"},
         ),
         ###### Runs Distributions
+        html.Div([], style={"height": "45px"}),
         html.H2("Runs Distributions"),
         # Histogram of Runs Distributions
         html.Div(
@@ -303,8 +344,9 @@ app.layout = html.Div(
         ),
         # Batting Leaderboard - All Time
         html.H2("Batting Leaderboard"),
-        html.P(""),
+        html.Div([], style={"height": "25px"}),
         html.H3("All Time Records"),
+        html.Div([], style={"height": "20px"}),
         html.Div(
             [
                 dcc.Tabs(
@@ -377,7 +419,7 @@ app.layout = html.Div(
                                         },
                                     ],
                                     page_current=0,
-                                    page_size=20,
+                                    page_size=15,
                                     page_action="native",
                                 )
                             ],
@@ -387,6 +429,209 @@ app.layout = html.Div(
             ],
             style={"width": "75%"},
         ),
+        # Season Records
+        html.Div([], style={"height": "45px"}),
+        html.H3("Season Records"),
+        html.Div([], style={"height": "20px"}),
+        html.Div(
+            [
+                dcc.Tabs(
+                    [
+                        dcc.Tab(
+                            label="Chart",
+                            children=[
+                                html.P(""),
+                                html.Div(
+                                    [
+                                        html.Div(
+                                            [
+                                                html.Label("Select a Metric"),
+                                                dcc.Dropdown(
+                                                    id="season-metric-selector",
+                                                    options=[
+                                                        {
+                                                            "label": metric,
+                                                            "value": metric,
+                                                        }
+                                                        for metric in batting_metrics_list
+                                                    ],
+                                                    value="Runs",
+                                                ),
+                                            ],
+                                            style={
+                                                "width": "25%",
+                                                "float": "left",
+                                                "padding-right": "25px",
+                                                "display": "inline-block",
+                                            },
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label("Season"),
+                                                dcc.Dropdown(
+                                                    id="season-year-selector",
+                                                    options=[
+                                                        {
+                                                            "label": str(year),
+                                                            "value": year,
+                                                        }
+                                                        for year in range(
+                                                            2019, 2007, -1
+                                                        )
+                                                    ],
+                                                    value=2019,
+                                                ),
+                                            ],
+                                            style={
+                                                "width": "25%",
+                                                "float": "middle",
+                                                "display": "inline-block",
+                                            },
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label("Team"),
+                                                dcc.Dropdown(
+                                                    id="season-team-selector",
+                                                    options=[
+                                                        {"label": team, "value": team}
+                                                        for team in team_list
+                                                    ],
+                                                    value="All Teams",
+                                                ),
+                                            ],
+                                            style={
+                                                "width": "25%",
+                                                "float": "right",
+                                                "display": "inline-block",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                html.Div([dcc.Graph(id="season-graph")]),
+                            ],
+                        ),
+                        dcc.Tab(
+                            label="Table",
+                            children=[
+                                dash_table.DataTable(
+                                    id="season-records",
+                                    columns=[
+                                        {"name": i, "id": i}
+                                        for i in batting.columns
+                                        if i != "Player Link"
+                                    ],
+                                    data=batting.to_dict("records"),
+                                    sort_action="native",
+                                    style_cell={"textAlign": "left"},
+                                    style_data_conditional=[
+                                        {
+                                            "if": {"row_index": "odd"},
+                                            "backgroundColor": "rgb(248, 248, 248)",
+                                        },
+                                    ],
+                                    page_current=0,
+                                    page_size=15,
+                                    page_action="native",
+                                )
+                            ],
+                        ),
+                    ]
+                )
+            ],
+            style={"width": "75%"},
+        ),
+        # Player Performance
+        html.Div([], style={"height": "80px"}),
+        html.H2(
+            "Why Strike Rate might not be the best predictor of player performance?"
+        ),
+        html.Div([], style={"height": "25px"}),
+        html.Div(
+            [
+                html.Div(
+                    [
+                        dcc.Tabs(
+                            id="tabs-with-classes",
+                            value="tab-1",
+                            parent_className="custom-tabs",
+                            className="custom-tabs-container",
+                            children=[
+                                dcc.Tab(
+                                    label="Strike Rate",
+                                    # value="tab-1",
+                                    # className="custom-tab",
+                                    # selected_className="custom-tab--selected",
+                                    children=[
+                                        dcc.Graph(
+                                            id="strike-rate-graph",
+                                            figure=strike_rate_graph,
+                                        )
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="4s",
+                                    # value="tab-2",
+                                    # className="custom-tab",
+                                    # selected_className="custom-tab--selected",
+                                    children=[
+                                        dcc.Graph(id="4s-graph", figure=fours_graph)
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="6s",
+                                    # value="tab-3",
+                                    # className="custom-tab",
+                                    # selected_className="custom-tab--selected",
+                                    children=[
+                                        dcc.Graph(id="6s-graph", figure=sixes_graph)
+                                    ],
+                                ),
+                            ],
+                        )
+                    ]
+                ),
+                html.Div(
+                    [
+                        html.P(
+                            "If you look at the Runs vs Strike Rate graph, you can see that "
+                            "the vast majority of the data is clustered around strike rate of "
+                            "110 to 170. And as the strike rate increases, the runs made by the "
+                            "doesn't increases.So,a person can have a high strike rate but may "
+                            "end up with a very low overall runs. How is that?"
+                        ),
+                        html.P(
+                            "Let's say a player go out in the field and played only 2 balls. In one, "
+                            "he hit a six run and in the second he got out. Now, he has a strike rate "
+                            "of 300. So, even though he has a very high strike rate, he ended up with a "
+                            "very low score. Compared this to another player who made 40 runs in the match "
+                            "with a strike rate of 130. Now, if you don't know how much runs each players "
+                            "have made, you would think that the first player is a better performer than the "
+                            "second player because he has a higher strike rate, which is a big mistake. "
+                        ),
+                        html.B("So,then what to look for?"),
+                        html.P(
+                            "A better metric would be the number of 4s or 6s a players hits in a match or "
+                            "in a Season. Because even if you don't know how much runs each players have  "
+                            "made, if you know that one player hits 5 fours in a season and another players "
+                            "hits 30 fours in a season then you instantly know that the second player is doing "
+                            "better than the first one. If you look at the 4s and 6s graph, you can see that "
+                            "as the number of 4s and 6s increases there runs also increase. More 4s and 6s "
+                            " a players will hit, there are maximum chances that he is making more runs.Because "
+                            "for every ball he is scoring 4 or 6 runs which is also increase the strike rate. "
+                            "A more added benefit. Another thing is hitting 4s and 6s is not a easy task and "
+                            "if a player can do it constantly then it is a good indication that the player is skillful. "
+                            "He has a good batting abilities."
+                        ),
+                    ],
+                    style={"width": "85%"},
+                ),
+            ],
+            style={"width": "75%"},
+        ),
+        # Bowling Records
+        html.Div([], style={"height": "45px"}),
+        html.H1("Bowling Records"),
     ]
 )
 
@@ -413,13 +658,34 @@ def update_players_runs_ts(player_names):
                 name=player,
             )
         )
+    fig.add_shape(
+        # Line Horizontal
+        type="line",
+        x0=2008,
+        y0=406,
+        x1=2019,
+        y1=406,
+        line=dict(color="LightSeaGreen", width=2, dash="dashdot",),
+    ),
+    fig.add_annotation(
+        text=" 90% of the players<br>makes less than 400 runs<br>in a season.",
+        x=2009,
+        y=406,
+        xref="x",
+        yref="y",
+        showarrow=True,
+        ax=0,
+        ay=-70,
+    )
+
     fig.update_layout(
         xaxis=dict(title="Season"), yaxis=dict(title="Runs"), height=550,
     )
+
     return fig
 
 
-# All time Graph
+# All time Batting Graph
 @app.callback(
     Output("all-time-graph", "figure"),
     [
@@ -480,6 +746,64 @@ def update_all_time_table(metric, team):
         unique_player_list = team_df["PLAYER"].unique()
         # select only those players
         df = df[df["PLAYER"].isin(unique_player_list)]
+        df = df.sort_values(by=metric, ascending=False)
+        return df.to_dict("records")
+
+
+# Season batting graph
+@app.callback(
+    Output("season-graph", "figure"),
+    [
+        Input("season-metric-selector", "value"),
+        Input("season-year-selector", "value"),
+        Input("season-team-selector", "value"),
+    ],
+)
+def update_batting_season_graph(metric, season, team):
+    df = batting[batting["Season"] == season]
+    if team == "All Teams":
+        df = df.sort_values(by=metric, ascending=False)
+        top_15 = df[:15]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=top_15[metric], y=top_15["PLAYER"], orientation="h",))
+        fig.update_layout(
+            title="Top {} Players {} ({})".format(team, metric, season),
+            xaxis=dict(title="{}".format(metric)),
+            yaxis=dict(autorange="reversed"),
+            height=550,
+        )
+        return fig
+    else:
+        df = df[df["Team"] == team]
+        df = df.sort_values(by=metric, ascending=False)
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=df[metric], y=df["PLAYER"], orientation="h",))
+        fig.update_layout(
+            title="Top {} Players {} ({})".format(team, metric, season),
+            xaxis=dict(title="{}".format(metric)),
+            yaxis=dict(autorange="reversed"),
+            height=550,
+        )
+        return fig
+
+
+# sort season batting table based on the metric and team, year
+@app.callback(
+    Output("season-records", "data"),
+    [
+        Input("season-metric-selector", "value"),
+        Input("season-year-selector", "value"),
+        Input("season-team-selector", "value"),
+    ],
+)
+def update_season_batting_table(metric, season, team):
+    df = batting[batting["Season"] == season]
+    if team == "All Teams":
+        df = df.sort_values(by=metric, ascending=False)
+        return df.to_dict("records")
+
+    else:
+        df = df[df["Team"] == team]
         df = df.sort_values(by=metric, ascending=False)
         return df.to_dict("records")
 
