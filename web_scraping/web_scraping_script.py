@@ -638,6 +638,95 @@ def batting_all_time_record(df):
 
     return batting_all_time
 
+def get_bowling_data_all_time():
+    try:
+        url = "https://www.iplt20.com/stats/all-time/most-wickets"
+        response = requests.get(url)
+        bowling_html = response.text
+        bowling_soup = bs(bowling_html)
+        
+        # get the table data
+        bowling_table_data = bowling_soup.find(class_ = "js-table")
+        
+        # get the column names
+        col_names = []
+        for header in bowling_table_data.find_all('th'):
+            col_names.append(header.text.strip())
+            
+        a_list = []
+        for data in bowling_table_data.find_all('td'):
+            a_list.append(' '.join(data.text.split()))
+
+        n = 13
+        final = [a_list[i:i + n] for i in range(0, len(a_list), n)]
+        df = pd.DataFrame(final)
+        df.columns = col_names
+        
+        # Add the nationality of each player in the dataframe
+        nationality_list = []
+        for index, data in enumerate(bowling_table_data.find_all('tr')[1:]):
+            try:
+                nationality_list.append(data['data-nationality'])
+            except Exception as e:
+                print(e)
+                print(index)
+                # add none 
+                nationality_list.append(None)
+        df['Nationality'] = nationality_list
+        
+        
+        # Add the player link for more info in the dataframe
+        base_url = "https://www.iplt20.com"
+        player_link_list = []
+
+        # get all the links and add it to the list
+        for data in bowling_table_data.find_all('a'):
+            player_link_list.append(base_url + data['href'])
+
+        # create a column with None value
+        df[14] = None
+        # iterate through each row and create a player name pattern
+        for index, row in df.iterrows():
+            player_name = row['PLAYER'].replace(' ','-')
+            player_regex = re.compile(r"{}".format(player_name),re.IGNORECASE)
+            for item in player_link_list:
+                # if the pattern matches any links
+                if player_regex.search(item) != None:
+                    # then append it to that row of the df
+                    df.iloc[index,14] = item
+        # rename the column            
+        df.rename(columns={14:'Player Link'}, inplace=True)
+
+
+        # extract the player team name from the link and add to the df
+        team_regex = r"teams/(\w+-\w+-?\w+)"
+        df['Team'] = df['Player Link'].str.extract(team_regex, flags=re.IGNORECASE)
+        df['Team'] = df['Team'].apply(lambda x : str(x).title().replace('-',' '))
+        
+        # convert data types from string to numeric
+        df['POS'] = pd.to_numeric(df['POS'], errors='coerce').fillna(0)
+        df['Mat'] = pd.to_numeric(df['Mat'], errors='coerce').fillna(0)
+        df['Inns'] = pd.to_numeric(df['Inns'], errors='coerce').fillna(0)
+        df['Ov'] = pd.to_numeric(df['Ov'], errors='coerce').fillna(0)
+        df['Runs'] = pd.to_numeric(df['Runs'].str.replace(',',''), errors='coerce').fillna(0)
+        df['Wkts'] = pd.to_numeric(df['Wkts'], errors='coerce').fillna(0)
+        #df['BBI'] = pd.to_numeric(df['BBI'], errors='coerce').fillna(0)
+        df['Avg'] = pd.to_numeric(df['Avg'], errors='coerce').fillna(0)
+        df['Econ'] = pd.to_numeric(df['Econ'], errors='coerce').fillna(0)
+        df['SR'] = pd.to_numeric(df['SR'], errors='coerce').fillna(0)
+        df['4w'] = pd.to_numeric(df['4w'], errors='coerce').fillna(0)
+        df['5w'] = pd.to_numeric(df['5w'], errors='coerce').fillna(0)
+        
+        
+    except Exception as e:
+        print(e)
+        print(year)
+        
+        
+        
+    # return dataframe
+    return df   
+
 
 if __name__ == "__main__":
 
@@ -699,5 +788,12 @@ if __name__ == "__main__":
     save_dataframe(bowling_df, "bowling.csv", file_path)
     print("Completed.")
     print()
-    print("I am done!")
+    
+    # get bowling data all time
+    print("Getting bowling aggregated data")
+    bowling_all_time = get_bowling_data_all_time()
+    save_dataframe(bowling_all_time, 'bowling_all_time.csv', file_path)
+    print("Completed")
+    print()
+    print("I am done! Have Fun :)")
 
