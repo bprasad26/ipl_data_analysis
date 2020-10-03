@@ -1,0 +1,1 @@
+web: gunicorn ipl-app:server

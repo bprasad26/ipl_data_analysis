@@ -212,21 +212,7 @@ scatter_matrix_30.update_layout(height=550)
 
 app = dash.Dash()
 
-
-tabs_styles = {"height": "44px"}
-tab_style = {
-    "borderBottom": "1px solid #d6d6d6",
-    "padding": "6px",
-    "fontWeight": "bold",
-}
-
-tab_selected_style = {
-    "borderTop": "1px solid #d6d6d6",
-    "borderBottom": "1px solid #d6d6d6",
-    "backgroundColor": "#119DFF",
-    "color": "white",
-    "padding": "6px",
-}
+server = app.server
 
 
 app.layout = html.Div(
@@ -1442,5 +1428,5 @@ def update_season_batting_table(metric, season, team):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server()
 
