@@ -1,3 +1,6 @@
+import warnings
+
+warnings.simplefilter(action="ignore", category=UserWarning)
 from dash_core_components.Dropdown import Dropdown
 from dash_core_components.Graph import Graph
 from dash_core_components.Markdown import Markdown
@@ -11,6 +14,7 @@ from pandas.core.indexes import multi
 from pandas.io.formats import style
 import dash
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import dash_table
@@ -29,13 +33,14 @@ def load_data(filename, file_path=file_path):
     return pd.read_csv(csv_path)
 
 
-external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+# external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # read the data
 points_table = load_data("points_table.csv")
 points_table["Net R/R"] = points_table["Net R/R"].round(3)
 
 wins_losses = load_data("wins_losses.csv")
 wins_losses.sort_values(by=["Titles", "Win %"], ascending=[False, False], inplace=True)
+wins_losses.drop("Span", axis=1, inplace=True)
 
 # read batting data
 batting = load_data("batting.csv")
@@ -50,6 +55,8 @@ batting_agg = load_data("batting_all_time.csv")
 bowling = load_data("bowling.csv")
 bowling = bowling.rename(columns={"Maid": "Maiden"})
 bowling_players_list = list(bowling["PLAYER"].unique())
+# create a new column
+bowling["Runs/Inns"] = (bowling["Runs"] / bowling["Inns"]).round(2)
 
 # read bowling aggregated data
 bowling_agg = load_data("bowling_all_time.csv")
@@ -62,6 +69,8 @@ bowling_agg = pd.merge(
 )
 # delete un-necessary column
 bowling_agg.drop("Player Link", axis=1, inplace=True)
+# create a new column
+bowling_agg["Runs/Inns"] = (bowling_agg["Runs"] / bowling_agg["Inns"]).round(2)
 
 
 batting_metrics_list = [
@@ -84,7 +93,7 @@ bowling_metrics_list = [
     "Econ",
     "Avg",
     "SR",
-    "Runs",
+    "Runs/Inns",
     "Dots",
     "4w",
     "5w",
@@ -210,7 +219,7 @@ scatter_matrix_30 = px.scatter_matrix(
 scatter_matrix_30.update_layout(height=550)
 
 
-app = dash.Dash()
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
 
 server = app.server
 
@@ -218,13 +227,13 @@ server = app.server
 app.layout = html.Div(
     [
         html.H1("IPL Stats (2008-2019)"),
-        html.H3("by Bhola Prasad"),
-        dcc.Markdown("#### Website - [Life With Data](https://www.lifewithdata.com/)"),
+        html.H4("by Bhola Prasad"),
+        dcc.Markdown("##### Website - [Life With Data](https://www.lifewithdata.com/)"),
         ##### Points Table
+        html.Div([], style={"height": "100px"}),
+        html.H3("Points Table"),
         html.Div(
             [
-                html.Div([], style={"height": "100px"}),
-                html.H2("Points Table"),
                 html.Div(
                     [
                         html.Label("Select a Season"),
@@ -236,6 +245,15 @@ app.layout = html.Div(
                             ],
                             value=2019,
                         ),
+                    ],
+                    style={"width": "20%", "display": "inline-block"},
+                ),
+            ]
+        ),
+        html.Div(
+            [
+                html.Div(
+                    [
                         # points table data
                         dash_table.DataTable(
                             id="points-table",
@@ -266,19 +284,15 @@ app.layout = html.Div(
                             ],
                         ),
                     ],
-                    style={"width": "70%", "display": "inline-block"},
-                ),
-                html.Div(
-                    style={"width": "20%", "float": "right", "display": "inline-block"}
-                ),
+                    style={"margin": "15px", "width": "70%"},
+                )
             ]
         ),
         ####### Team Wins and Losses Table
         html.Div([], style={"height": "45px"}),
+        html.H3("Team Records"),
         html.Div(
             [
-                html.H2("Team Wins, losses and draws"),
-                # Wins, losses and draws data
                 dash_table.DataTable(
                     id="wins-losses-table",
                     columns=[{"name": i, "id": i} for i in wins_losses.columns],
@@ -308,15 +322,15 @@ app.layout = html.Div(
                     ],
                 ),
             ],
-            style={"margin": "40px 0", "width": "70%", "display": "inline-block"},
+            style={"margin": "15px", "width": "70%"},
         ),
         ###### Batting stats
         html.Div([], style={"height": "45px"}),
-        html.H1("Batting Records"),
+        html.H2("Batting Records"),
         html.Div(
             [
                 html.Div([], style={"height": "25px"}),
-                html.H2("Player Runs Per Season"),
+                html.H4("Player Runs Per Season"),
                 html.B("Select Players"),
                 html.P("Use dropdown to select multiple players or remove them."),
                 dcc.Dropdown(
@@ -331,11 +345,11 @@ app.layout = html.Div(
                 # Players Runs Time-Series Chart
                 dcc.Graph(id="players-runs-time-series"),
             ],
-            style={"margin": "40px 0", "width": "80%"},
+            style={"width": "70%"},
         ),
         ###### Runs Distributions
         html.Div([], style={"height": "45px"}),
-        html.H2("Runs Distributions"),
+        html.H3("Runs Distributions"),
         # Histogram of Runs Distributions
         html.Div(
             [
@@ -360,7 +374,7 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [dcc.Graph(id="runs-dist-plot", figure=runs_dist_plot)],
-                    style={"width": "65%", "float": "right", "display": "inline-block"},
+                    style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
             style={"margin": "40px", "height": 500},
@@ -389,15 +403,15 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [dcc.Graph(id="runs-kde-plot", figure=runs_kde_plot,)],
-                    style={"width": "65%", "float": "right", "display": "inline-block"},
+                    style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
             style={"margin": "40px", "height": 500},
         ),
         # Batting Leaderboard - All Time
-        html.H2("Batting Leaderboard"),
+        html.H3("Batting Leaderboard"),
         html.Div([], style={"height": "25px"}),
-        html.H3("All Time Records"),
+        html.H4("All Time Records"),
         html.Div([], style={"height": "20px"}),
         html.Div(
             [
@@ -470,6 +484,13 @@ app.layout = html.Div(
                                             "backgroundColor": "rgb(248, 248, 248)",
                                         },
                                     ],
+                                    style_table={"overflowX": "auto"},
+                                    style_cell_conditional=[
+                                        {
+                                            "if": {"column_id": "PLAYER"},
+                                            "textAlign": "center",
+                                        },
+                                    ],
                                     page_current=0,
                                     page_size=15,
                                     page_action="native",
@@ -483,7 +504,7 @@ app.layout = html.Div(
         ),
         # Season Records
         html.Div([], style={"height": "45px"}),
-        html.H3("Season Records"),
+        html.H4("Season Records"),
         html.Div([], style={"height": "20px"}),
         html.Div(
             [
@@ -582,6 +603,13 @@ app.layout = html.Div(
                                             "backgroundColor": "rgb(248, 248, 248)",
                                         },
                                     ],
+                                    style_table={"overflowX": "auto"},
+                                    style_cell_conditional=[
+                                        {
+                                            "if": {"column_id": "POS"},
+                                            "textAlign": "center",
+                                        },
+                                    ],
                                     page_current=0,
                                     page_size=15,
                                     page_action="native",
@@ -595,7 +623,7 @@ app.layout = html.Div(
         ),
         # Player Performance
         html.Div([], style={"height": "80px"}),
-        html.H2(
+        html.H4(
             "Why Strike Rate might not be the best predictor of player performance?"
         ),
         html.Div([], style={"height": "25px"}),
@@ -634,6 +662,7 @@ app.layout = html.Div(
                         )
                     ]
                 ),
+                html.Div([], style={"height": "25px"}),
                 html.Div(
                     [
                         html.P(
@@ -673,9 +702,9 @@ app.layout = html.Div(
         ),
         # Bowling Records
         html.Div([], style={"height": "45px"}),
-        html.H1("Bowling Records"),
+        html.H2("Bowling Records"),
         html.Div([], style={"height": "25px"}),
-        html.H2("Player Wickets Per Season"),
+        html.H4("Player Wickets Per Season"),
         html.Div(
             [
                 html.B("Select Players"),
@@ -697,10 +726,10 @@ app.layout = html.Div(
                 ),
                 dcc.Graph(id="players-wickets-time-series"),
             ],
-            style={"width": "75%"},
+            style={"width": "70%"},
         ),
         html.Div([], style={"height": "45px"}),
-        html.H2("Wickets Distributions"),
+        html.H4("Wickets Distributions"),
         # Histogram of Wickets Distributions
         html.Div(
             [
@@ -725,7 +754,7 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [dcc.Graph(id="wickets-hist-plot", figure=wickets_histogram)],
-                    style={"width": "65%", "float": "right", "display": "inline-block"},
+                    style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
             style={"margin": "40px", "height": 500},
@@ -754,15 +783,15 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [dcc.Graph(id="team-wickets-dist", figure=team_wickets_dist,)],
-                    style={"width": "65%", "float": "right", "display": "inline-block"},
+                    style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
             style={"margin": "40px", "height": 500},
         ),
         # Bowling Leaderboard
-        html.H2("Bowling Leaderboard"),
+        html.H3("Bowling Leaderboard"),
         html.Div([], style={"height": "25px"}),
-        html.H3("All Time Records"),
+        html.H4("All Time Records"),
         html.Div([], style={"height": "20px"}),
         html.Div(
             [
@@ -828,11 +857,18 @@ app.layout = html.Div(
                                     ],
                                     data=bowling_agg.to_dict("records"),
                                     sort_action="native",
-                                    style_cell={"textAlign": "left"},
+                                    style_cell={"textAlign": "left",},
                                     style_data_conditional=[
                                         {
                                             "if": {"row_index": "odd"},
                                             "backgroundColor": "rgb(248, 248, 248)",
+                                        },
+                                    ],
+                                    style_table={"overflowX": "auto"},
+                                    style_cell_conditional=[
+                                        {
+                                            "if": {"column_id": "POS"},
+                                            "textAlign": "center",
                                         },
                                     ],
                                     page_current=0,
@@ -848,7 +884,7 @@ app.layout = html.Div(
         ),
         # Season Records -  Bowling
         html.Div([], style={"height": "45px"}),
-        html.H3("Season Records"),
+        html.H4("Season Records"),
         html.Div([], style={"height": "20px"}),
         html.Div(
             [
@@ -947,6 +983,13 @@ app.layout = html.Div(
                                             "backgroundColor": "rgb(248, 248, 248)",
                                         },
                                     ],
+                                    style_table={"overflowX": "auto"},
+                                    style_cell_conditional=[
+                                        {
+                                            "if": {"column_id": "POS"},
+                                            "textAlign": "center",
+                                        },
+                                    ],
                                     page_current=0,
                                     page_size=15,
                                     page_action="native",
@@ -960,7 +1003,7 @@ app.layout = html.Div(
         ),
         # bowler Performance
         html.Div([], style={"height": "80px"}),
-        html.H2("When to use which bowling metrics apart from wickets?"),
+        html.H4("When to use which bowling metrics apart from wickets?"),
         html.Div([], style={"height": "25px"}),
         html.Div(
             [
@@ -992,7 +1035,9 @@ app.layout = html.Div(
                             ],
                         ),
                     ],
+                    style={"width": "90%"},
                 ),
+                html.Div([], style={"height": "25px"}),
                 html.Div(
                     [
                         html.P(
@@ -1029,14 +1074,14 @@ app.layout = html.Div(
                             "find good bowlers. And for bowling average, a player having a bowling average less than 20 is good."
                         ),
                     ],
-                    style={"width": "85%"},
+                    style={"width": "80%"},
                 ),
             ],
-            style={"width": "75%"},
+            style={"width": "80%"},
         ),
         # summary
         html.Div([], style={"height": "80px"}),
-        html.H2("Summary"),
+        html.H3("Summary"),
         html.Div([], style={"height": "25px"}),
         html.Div(
             [
@@ -1062,10 +1107,12 @@ app.layout = html.Div(
                     "finding bowlers who can take more wickets for you than using Economy rate.Economy Rate "
                     "only tells you if a bowler is more or less economical. It is what it is."
                 ),
+                html.Div([], style={"height": "20px"}),
             ],
-            style={"width": "75%"},
+            style={"width": "65%"},
         ),
-    ]
+    ],
+    style={"margin-left": "20px"},
 )
 
 
@@ -1282,7 +1329,7 @@ def update_all_time_graph_bowling(metric, team):
     # Select only non-zero values
     df = df[df[metric] != 0]
     # reverse logic for these metrics, less is better
-    rev_metrics = ["Econ", "Avg", "SR", "Runs"]
+    rev_metrics = ["Econ", "Avg", "SR", "Runs/Inns"]
     if metric in rev_metrics:
         asc = True
     else:
@@ -1332,7 +1379,7 @@ def update_all_time_table_bowling(metric, team):
     # Select only non-zero values
     df = df[df[metric] != 0]
     # reverse logic for these metrics, less is better
-    rev_metrics = ["Econ", "Avg", "SR", "Runs"]
+    rev_metrics = ["Econ", "Avg", "SR", "Runs/Inns"]
     if metric in rev_metrics:
         asc = True
     else:
@@ -1365,7 +1412,7 @@ def update_batting_season_graph(metric, season, team):
     df = bowling[bowling["Season"] == season]
     # Select only non-zero values
     df = df[df[metric] != 0]
-    rev_metrics = ["Econ", "Avg", "SR", "Runs"]
+    rev_metrics = ["Econ", "Avg", "SR", "Runs/Inns"]
     if metric in rev_metrics:
         asc = True
     else:
@@ -1411,7 +1458,7 @@ def update_season_batting_table(metric, season, team):
     # Select only non-zero values
     df = df[df[metric] != 0]
     # reverse logic for these metrics, less is better
-    rev_metrics = ["Econ", "Avg", "SR", "Runs"]
+    rev_metrics = ["Econ", "Avg", "SR", "Runs/Inns"]
     if metric in rev_metrics:
         asc = True
     else:
@@ -1428,5 +1475,5 @@ def update_season_batting_table(metric, season, team):
 
 
 if __name__ == "__main__":
-    app.run_server()
+    app.run_server(debug=True)
 

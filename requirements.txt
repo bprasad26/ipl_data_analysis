@@ -9,3 +9,4 @@ requests==2.24.0
 matplotlib==3.2.2
 seaborn==0.10.1
 statsmodels==0.11.1
+dash-bootstrap-components==0.10.6
