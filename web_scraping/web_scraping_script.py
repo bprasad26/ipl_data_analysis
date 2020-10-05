@@ -11,7 +11,7 @@ import os
 
 # Important Note ---
 # change the value for which you want to scrape the data defaults to 2008-2019
-year_list = [year for year in range(2019,2007,-1)]
+year_list = [year for year in range(2019, 2007, -1)]
 
 
 # project paths
@@ -581,32 +581,49 @@ def get_bowling_data(year):
     # return dataframe
     return df
 
+
 def get_wins_losses_data():
-    win_losses = pd.read_html("https://en.wikipedia.org/wiki/List_of_Indian_Premier_League_records_and_statistics")
+    win_losses = pd.read_html(
+        "https://en.wikipedia.org/wiki/List_of_Indian_Premier_League_records_and_statistics"
+    )
     # select the win losses table
     win_losses_df = win_losses[3]
-    # drop the last 
+    # drop the last
     win_losses_df.drop(win_losses_df.index[-1], inplace=True)
-    #change names of the teams
-    val_dict = {"CSK": "Chennai Super Kings",
-           "DC": "Delhi Capitals",
-           "KXIP": "Kings XI Punjab",
-           "KKR": "Kolkata Knight Riders",
-           "MI": "Mumbai Indians",
-           "RR": "Rajasthan Royals",
-           "RCB": "Royal Challengers Banglore",
-           "SRH": "Sunrisers Hyderabad"}
+    # change names of the teams
+    val_dict = {
+        "CSK": "Chennai Super Kings",
+        "DC": "Delhi Capitals",
+        "KXIP": "Kings XI Punjab",
+        "KKR": "Kolkata Knight Riders",
+        "MI": "Mumbai Indians",
+        "RR": "Rajasthan Royals",
+        "RCB": "Royal Challengers Banglore",
+        "SRH": "Sunrisers Hyderabad",
+    }
 
     win_losses_df["Team"] = win_losses_df["Team"].map(val_dict)
     # rename the column
-    win_losses_df.rename(columns={'Win\xa0%':'Win %'}, inplace=True)
+    win_losses_df.rename(columns={"Win\xa0%": "Win %"}, inplace=True)
     # columns list
-    cols_list = ['Matches', 'Won', 'Lost', 'No Result', 'Tied and won', 'Tied and lost','Win %', 'Titles']
+    cols_list = [
+        "Matches",
+        "Won",
+        "Lost",
+        "No Result",
+        "Tied and won",
+        "Tied and lost",
+        "Win %",
+        "Titles",
+    ]
     # convert data types
     for col in cols_list:
-        win_losses_df[col] = pd.to_numeric(win_losses_df[col], errors='coerce').fillna(0)
-        
+        win_losses_df[col] = pd.to_numeric(win_losses_df[col], errors="coerce").fillna(
+            0
+        )
+
     return win_losses_df
+
 
 def batting_all_time_record(df):
     """This Function create the aggregated all the season data
@@ -638,94 +655,92 @@ def batting_all_time_record(df):
 
     return batting_all_time
 
+
 def get_bowling_data_all_time():
     try:
         url = "https://www.iplt20.com/stats/all-time/most-wickets"
         response = requests.get(url)
         bowling_html = response.text
-        bowling_soup = bs(bowling_html)
-        
+        bowling_soup = bs(bowling_html, "lxml")
+
         # get the table data
-        bowling_table_data = bowling_soup.find(class_ = "js-table")
-        
+        bowling_table_data = bowling_soup.find(class_="js-table")
+
         # get the column names
         col_names = []
-        for header in bowling_table_data.find_all('th'):
+        for header in bowling_table_data.find_all("th"):
             col_names.append(header.text.strip())
-            
+
         a_list = []
-        for data in bowling_table_data.find_all('td'):
-            a_list.append(' '.join(data.text.split()))
+        for data in bowling_table_data.find_all("td"):
+            a_list.append(" ".join(data.text.split()))
 
         n = 13
-        final = [a_list[i:i + n] for i in range(0, len(a_list), n)]
+        final = [a_list[i : i + n] for i in range(0, len(a_list), n)]
         df = pd.DataFrame(final)
         df.columns = col_names
-        
+
         # Add the nationality of each player in the dataframe
         nationality_list = []
-        for index, data in enumerate(bowling_table_data.find_all('tr')[1:]):
+        for index, data in enumerate(bowling_table_data.find_all("tr")[1:]):
             try:
-                nationality_list.append(data['data-nationality'])
+                nationality_list.append(data["data-nationality"])
             except Exception as e:
                 print(e)
                 print(index)
-                # add none 
+                # add none
                 nationality_list.append(None)
-        df['Nationality'] = nationality_list
-        
-        
+        df["Nationality"] = nationality_list
+
         # Add the player link for more info in the dataframe
         base_url = "https://www.iplt20.com"
         player_link_list = []
 
         # get all the links and add it to the list
-        for data in bowling_table_data.find_all('a'):
-            player_link_list.append(base_url + data['href'])
+        for data in bowling_table_data.find_all("a"):
+            player_link_list.append(base_url + data["href"])
 
         # create a column with None value
         df[14] = None
         # iterate through each row and create a player name pattern
         for index, row in df.iterrows():
-            player_name = row['PLAYER'].replace(' ','-')
-            player_regex = re.compile(r"{}".format(player_name),re.IGNORECASE)
+            player_name = row["PLAYER"].replace(" ", "-")
+            player_regex = re.compile(r"{}".format(player_name), re.IGNORECASE)
             for item in player_link_list:
                 # if the pattern matches any links
                 if player_regex.search(item) != None:
                     # then append it to that row of the df
-                    df.iloc[index,14] = item
-        # rename the column            
-        df.rename(columns={14:'Player Link'}, inplace=True)
-
+                    df.iloc[index, 14] = item
+        # rename the column
+        df.rename(columns={14: "Player Link"}, inplace=True)
 
         # extract the player team name from the link and add to the df
         team_regex = r"teams/(\w+-\w+-?\w+)"
-        df['Team'] = df['Player Link'].str.extract(team_regex, flags=re.IGNORECASE)
-        df['Team'] = df['Team'].apply(lambda x : str(x).title().replace('-',' '))
-        
+        df["Team"] = df["Player Link"].str.extract(team_regex, flags=re.IGNORECASE)
+        df["Team"] = df["Team"].apply(lambda x: str(x).title().replace("-", " "))
+
         # convert data types from string to numeric
-        df['POS'] = pd.to_numeric(df['POS'], errors='coerce').fillna(0)
-        df['Mat'] = pd.to_numeric(df['Mat'], errors='coerce').fillna(0)
-        df['Inns'] = pd.to_numeric(df['Inns'], errors='coerce').fillna(0)
-        df['Ov'] = pd.to_numeric(df['Ov'], errors='coerce').fillna(0)
-        df['Runs'] = pd.to_numeric(df['Runs'].str.replace(',',''), errors='coerce').fillna(0)
-        df['Wkts'] = pd.to_numeric(df['Wkts'], errors='coerce').fillna(0)
-        #df['BBI'] = pd.to_numeric(df['BBI'], errors='coerce').fillna(0)
-        df['Avg'] = pd.to_numeric(df['Avg'], errors='coerce').fillna(0)
-        df['Econ'] = pd.to_numeric(df['Econ'], errors='coerce').fillna(0)
-        df['SR'] = pd.to_numeric(df['SR'], errors='coerce').fillna(0)
-        df['4w'] = pd.to_numeric(df['4w'], errors='coerce').fillna(0)
-        df['5w'] = pd.to_numeric(df['5w'], errors='coerce').fillna(0)
-        
-        
+        df["POS"] = pd.to_numeric(df["POS"], errors="coerce").fillna(0)
+        df["Mat"] = pd.to_numeric(df["Mat"], errors="coerce").fillna(0)
+        df["Inns"] = pd.to_numeric(df["Inns"], errors="coerce").fillna(0)
+        df["Ov"] = pd.to_numeric(df["Ov"], errors="coerce").fillna(0)
+        df["Runs"] = pd.to_numeric(
+            df["Runs"].str.replace(",", ""), errors="coerce"
+        ).fillna(0)
+        df["Wkts"] = pd.to_numeric(df["Wkts"], errors="coerce").fillna(0)
+        # df['BBI'] = pd.to_numeric(df['BBI'], errors='coerce').fillna(0)
+        df["Avg"] = pd.to_numeric(df["Avg"], errors="coerce").fillna(0)
+        df["Econ"] = pd.to_numeric(df["Econ"], errors="coerce").fillna(0)
+        df["SR"] = pd.to_numeric(df["SR"], errors="coerce").fillna(0)
+        df["4w"] = pd.to_numeric(df["4w"], errors="coerce").fillna(0)
+        df["5w"] = pd.to_numeric(df["5w"], errors="coerce").fillna(0)
+
     except Exception as e:
         print(e)
         print(year)
-        
-        
-        
+
     # return dataframe
-    return df   
+    return df
 
 
 if __name__ == "__main__":
@@ -752,7 +767,7 @@ if __name__ == "__main__":
     save_dataframe(batting_df, "batting.csv", file_path)
     print("Completed")
     print()
-    
+
     # create batting aggregated data
     print("Creating batting aggregated data")
     batting = load_data("batting.csv")
@@ -774,11 +789,11 @@ if __name__ == "__main__":
     save_dataframe(fastest_centuries_df, "fastest_centuries.csv", file_path)
     print("Completed")
     print()
-    
+
     # get wins losses data
     print("Getting Wins Losses Data")
     wins_losses_df = get_wins_losses_data()
-    save_dataframe(wins_losses_df, "wins_losses.csv",file_path)
+    save_dataframe(wins_losses_df, "wins_losses.csv", file_path)
     print("Completed")
     print()
 
@@ -788,11 +803,11 @@ if __name__ == "__main__":
     save_dataframe(bowling_df, "bowling.csv", file_path)
     print("Completed.")
     print()
-    
+
     # get bowling data all time
     print("Getting bowling aggregated data")
     bowling_all_time = get_bowling_data_all_time()
-    save_dataframe(bowling_all_time, 'bowling_all_time.csv', file_path)
+    save_dataframe(bowling_all_time, "bowling_all_time.csv", file_path)
     print("Completed")
     print()
     print("I am done! Have Fun :)")
