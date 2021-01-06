@@ -159,6 +159,9 @@ dmypy.json
 
 # pytype static type analyzer
 .pytype/
+# virtual environment
+ipl_venv/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks,code
+
 
