@@ -23,6 +23,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 import os
+import base64
 
 # function for loading data
 file_path = os.path.join(os.getcwd(), "data")
@@ -33,7 +34,6 @@ def load_data(filename, file_path=file_path):
     return pd.read_csv(csv_path)
 
 
-# external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # read the data
 points_table = load_data("points_table.csv")
 points_table["Net R/R"] = points_table["Net R/R"].round(3)
@@ -146,45 +146,24 @@ runs_kde_plot.update_layout(
 )
 
 
-# plot strike rate
-strike_rate_graph = px.scatter(
-    batting[batting["Team"] != "Nan"],
-    x="SR",
-    y="Runs",
-    color="Team",
-    hover_name="PLAYER",
-    hover_data=["Season"],
-    trendline="ols",
-)
-strike_rate_graph.update_layout(
-    title="Runs Vs Strike Rate", xaxis=dict(title="Strike Rate")
-)
+# function for adding local images
+def encode_image(image_file):
+    encoded = base64.b64encode(open(image_file, "rb").read())
+    return "data:image/png;base64,{}".format(encoded.decode())
 
 
-# plot 4s
-fours_graph = px.scatter(
-    batting[batting["Team"] != "Nan"],
-    x="4s",
-    y="Runs",
-    color="Team",
-    hover_name="PLAYER",
-    hover_data=["Season"],
-    trendline="ols",
-)
-fours_graph.update_layout(title="Runs Vs 4s")
+# Batting Feature Importances figures
 
+batting_bar = os.getcwd() + "/images/batting_bar.png"
+batting_beeswarm = os.getcwd() + "/images/batting_beeswarm.png"
+batting_bf = os.getcwd() + "/images/batting_bf.png"
+batting_sr = os.getcwd() + "/images/batting_sr.png"
 
-# plot 6s graph
-sixes_graph = px.scatter(
-    batting[batting["Team"] != "Nan"],
-    x="6s",
-    y="Runs",
-    color="Team",
-    hover_name="PLAYER",
-    hover_data=["Season"],
-    trendline="ols",
-)
-sixes_graph.update_layout(title="Runs Vs 6s")
+# Bowling Feature Importances figures
+bowling_bar = os.getcwd() + "/images/bowling_bar.png"
+bowling_beeswarm = os.getcwd() + "/images/bowling_beeswarm.png"
+bowling_sr = os.getcwd() + "/images/bowling_sr.png"
+bowling_dots = os.getcwd() + "/images/bowling_dots.png"
 
 
 ###### Bowling plots
@@ -204,20 +183,6 @@ team_wickets_dist.update_layout(
     yaxis=dict(title="Players Team"),
     xaxis=dict(title="Total Wickets"),
 )
-
-# scatter matrix plots
-scatter_matrix_all = px.scatter_matrix(
-    bowling, dimensions=["Wkts", "Dots", "SR", "Avg", "Econ"]
-)
-scatter_matrix_all.update_layout(height=550)
-
-# players who have bowled more than 30 overs in a season
-more_than_30_ov = bowling[bowling["Ov"] > 30]
-scatter_matrix_30 = px.scatter_matrix(
-    more_than_30_ov, dimensions=["Wkts", "Dots", "SR", "Avg", "Econ"]
-)
-scatter_matrix_30.update_layout(height=550)
-
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SOLAR])
 
@@ -339,7 +304,12 @@ app.layout = html.Div(
                         {"label": player, "value": player}
                         for player in batting_players_list
                     ],
-                    value=["Virat Kohli", "Rohit Sharma", "David Warner", "KL Rahul",],
+                    value=[
+                        "Virat Kohli",
+                        "Rohit Sharma",
+                        "David Warner",
+                        "KL Rahul",
+                    ],
                     multi=True,
                 ),
                 # Players Runs Time-Series Chart
@@ -402,7 +372,12 @@ app.layout = html.Div(
                     },
                 ),
                 html.Div(
-                    [dcc.Graph(id="runs-kde-plot", figure=runs_kde_plot,)],
+                    [
+                        dcc.Graph(
+                            id="runs-kde-plot",
+                            figure=runs_kde_plot,
+                        )
+                    ],
                     style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
@@ -449,7 +424,10 @@ app.layout = html.Div(
                                                 dcc.Dropdown(
                                                     id="all-time-team-selector",
                                                     options=[
-                                                        {"label": team, "value": team,}
+                                                        {
+                                                            "label": team,
+                                                            "value": team,
+                                                        }
                                                         for team in team_list
                                                     ],
                                                     value="All Teams",
@@ -621,11 +599,9 @@ app.layout = html.Div(
             ],
             style={"width": "75%"},
         ),
-        # Player Performance
+        # Features importances
         html.Div([], style={"height": "80px"}),
-        html.H4(
-            "Why Strike Rate might not be the best predictor of player performance?"
-        ),
+        html.H4("Important features for predicting players runs."),
         html.Div([], style={"height": "25px"}),
         html.Div(
             [
@@ -638,61 +614,47 @@ app.layout = html.Div(
                             className="custom-tabs-container",
                             children=[
                                 dcc.Tab(
+                                    label="Feature Importances",
+                                    children=[html.Img(src=encode_image(batting_bar))],
+                                ),
+                                dcc.Tab(
+                                    label="FI Beeswarm",
+                                    children=[
+                                        html.Img(src=encode_image(batting_beeswarm))
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="Ball Faced",
+                                    children=[html.Img(src=encode_image(batting_bf))],
+                                ),
+                                dcc.Tab(
                                     label="Strike Rate",
-                                    children=[
-                                        dcc.Graph(
-                                            id="strike-rate-graph",
-                                            figure=strike_rate_graph,
-                                        )
-                                    ],
-                                ),
-                                dcc.Tab(
-                                    label="4s",
-                                    children=[
-                                        dcc.Graph(id="4s-graph", figure=fours_graph)
-                                    ],
-                                ),
-                                dcc.Tab(
-                                    label="6s",
-                                    children=[
-                                        dcc.Graph(id="6s-graph", figure=sixes_graph)
-                                    ],
+                                    children=[html.Img(src=encode_image(batting_sr))],
                                 ),
                             ],
                         )
-                    ]
+                    ],
+                    style={"width": "88%"},
                 ),
                 html.Div([], style={"height": "25px"}),
                 html.Div(
                     [
+                        html.H5("Feature Importances: "),
                         html.P(
-                            "If you look at the Runs vs Strike Rate graph, you can see that as the strike "
-                            "rate increases the runs made by the players does not increases. The vast majority "
-                            "of the data is clustered around strike rate of 110 to 170. Which basically telling us "
-                            "that a person could have a higher strike rate in a match or in a season but may end up "
-                            "with low score. Let's see, how is that possible? "
+                            "BF - This is the most important feature in predicting how much runs a player will make and"
+                            "as the number of ball faced increases the number of runs also increases, so spending more"
+                            "time on the field is even much more important than having a very higher strike rate. "
                         ),
                         html.P(
-                            "Let's say a player go out in the field and played only 2 balls. In one, he hit a six run "
-                            "and in the second he got out. Now, he has a strike rate of 300. So, even though he has a "
-                            "very high strike rate, he ended up with a very low score. Compared this to another player "
-                            "who made 40 runs in the match with a strike rate of, let's 130. Even though the second player "
-                            "have less than 50% of the strike rate of the first person, he is still doing a lot better."
-                            "So, never judge two players based only on strike rate, always try to find out how much runs each "
-                            "have made before making any decisions."
+                            "SR - Second most important feature is strike rate and having a higher strike rate is good."
                         ),
-                        html.B("Some other alternative metrics?"),
                         html.P(
-                            "Some very good alternative metrics are the number of 4s or 6s a players hits in a match or "
-                            "in a Season. Because even if you don't know how much runs each players have made, if you know "
-                            "that one player hits only 5 fours in a season and another players hits 30 fours in a season "
-                            "then you will instantly know that the second player is doing much better than the first one. "
-                            "If you look at the 4s and 6s graph, you can see that as the number of 4s and 6s increases the "
-                            "runs also increase. If a player is hitting more 4s and 6s, there are good chances that he is making "
-                            "more runs. One more added benefit of using this metric is that hitting more 4s and 6s also increases "
-                            "the strike rate of the player. Another great thing about this metric is hitting 4s and 6s is not an easy "
-                            "task. A player have to be very skillful to do it consistently, which also tells you that the player has "
-                            "good batting abilities."
+                            "4s and 6s - Hitting 4s is slightly more important than hitting 6s in making runs in the long "
+                            "run. The reason cloud be hitting 4s is much easier than hitting 6s so most of the time players "
+                            "tends to have more 4s than 6s and when added together, in the long run 4s generate more runs."
+                        ),
+                        html.P(
+                            "Avg - Batting avg is also important but not as much as the above mentioned metrics."
                         ),
                     ],
                     style={"width": "85%"},
@@ -782,7 +744,12 @@ app.layout = html.Div(
                     },
                 ),
                 html.Div(
-                    [dcc.Graph(id="team-wickets-dist", figure=team_wickets_dist,)],
+                    [
+                        dcc.Graph(
+                            id="team-wickets-dist",
+                            figure=team_wickets_dist,
+                        )
+                    ],
                     style={"width": "60%", "float": "right", "display": "inline-block"},
                 ),
             ],
@@ -829,7 +796,10 @@ app.layout = html.Div(
                                                 dcc.Dropdown(
                                                     id="all-time-team-selector-bowling",
                                                     options=[
-                                                        {"label": team, "value": team,}
+                                                        {
+                                                            "label": team,
+                                                            "value": team,
+                                                        }
                                                         for team in team_list
                                                     ],
                                                     value="All Teams",
@@ -857,7 +827,9 @@ app.layout = html.Div(
                                     ],
                                     data=bowling_agg.to_dict("records"),
                                     sort_action="native",
-                                    style_cell={"textAlign": "left",},
+                                    style_cell={
+                                        "textAlign": "left",
+                                    },
                                     style_data_conditional=[
                                         {
                                             "if": {"row_index": "odd"},
@@ -1003,7 +975,7 @@ app.layout = html.Div(
         ),
         # bowler Performance
         html.Div([], style={"height": "80px"}),
-        html.H4("When to use which bowling metrics apart from wickets?"),
+        html.H4("Important features for predicting bowlers wickets."),
         html.Div([], style={"height": "25px"}),
         html.Div(
             [
@@ -1015,63 +987,56 @@ app.layout = html.Div(
                             className="custom-tabs-container-bowling",
                             children=[
                                 dcc.Tab(
-                                    label="All Data",
+                                    label="Feature Importance",
+                                    children=[html.Img(src=encode_image(bowling_bar))],
+                                ),
+                                dcc.Tab(
+                                    label="FI Beeswarm",
                                     children=[
-                                        dcc.Graph(
-                                            id="scatter-matrix-all",
-                                            figure=scatter_matrix_all,
-                                        )
+                                        html.Img(src=encode_image(bowling_beeswarm))
                                     ],
                                 ),
                                 dcc.Tab(
-                                    label="> 30 overs",
-                                    children=[
-                                        dcc.Graph(
-                                            id="scatter-matrix-30",
-                                            figure=scatter_matrix_30,
-                                        )
-                                    ],
+                                    label="Strike Rate",
+                                    children=[html.Img(src=encode_image(bowling_sr))],
+                                ),
+                                dcc.Tab(
+                                    label="Dots",
+                                    children=[html.Img(src=encode_image(bowling_dots))],
                                 ),
                             ],
                         ),
                     ],
-                    style={"width": "90%"},
+                    style={"width": "82.5%"},
                 ),
                 html.Div([], style={"height": "25px"}),
                 html.Div(
                     [
+                        html.H5("Faeture Importance: "),
                         html.P(
-                            "If you look at the above figure,you can see that as the number of dots ball increases "
-                            "the number of wickets taken also increases. It is very hard to say that this is the cause "
-                            "of it based on only correlation but there might be some truth because a players can only have "
-                            "lots of dot balls if the player is highly skillful. Or it could be that players who throws less "
-                            "overs tends to have less dot balls and also less wickets which make it feels like there is a some "
-                            "relationship between them. Or perhaps, throwing more dot balls puts lots of pressure on the batsaman "
-                            "and the batsman started to play reckless shots to release it and got out which we see all the time in "
-                            "cricket. Nevertheless, having higher dot balls is always good for the bowler and for the team."
+                            "Ov - This is the most important feature for predicting wickets, the reason could be that as you ball "
+                            "more overs the chances of getting wickets also increase compared to someone who only balls few overs."
                         ),
                         html.P(
-                            "Avg, Econ and SR shows negative correlation which we are expecting but the relationship "
-                            "is weak. So, decreasing the Avg, Econ, SR might not increases the number of wickets taken "
-                            "as much as we expect. But having lower value for all these metrics is always good. "
+                            "SR - Second most important feature is the Strike rate which is the average no. of balls bowled "
+                            "per wicket taken and it is negatively correlated with the wickets which means having a lower "
+                            "value of SR is good. The most interesting thing to note here is that SR is more important than the Economy rate. "
+                            "When people try to access a player performance, people often look at there Economy rate and If we "
+                            "look at the above Feature importance plot, you can see that it has very little or not effect on the "
+                            "no. of wickets taken which is really surprising."
                         ),
                         html.P(
-                            "We can also see that there is a very strong positive correlation between Strike rate(SR) "
-                            "and Avg(bowling average). The reason could be that if on average a player takes less balls "
-                            "to take wickets, the number of runs conceded per wickets might also will be lower and if "
-                            "a bowler is taking more balls to take wickets, the average number of runs conceded might also "
-                            "increase. But we can't say for sure. "
+                            "Dots- Another good feature is the number of dot balls a player balls. As the numbers of dot balls increase "
+                            "the chances of taking wickets also increases."
                         ),
                         html.P(
-                            "Look in the other tab. When we seperated the bowlers who balls less than 30 overs in a season, "
-                            "the relationship between the number of wickets taken and the number of dot balls still have a strong "
-                            "positive relation but not as much as we are getting earlier. But the negative correlation between Avg "
-                            "and SR with the Wickets taken do increase a lot. On the other hand, Econ still have weaker relationship "
-                            "with wickets. "
+                            "Avg - Bowling average is also an important feature. It is the average number of runs conceded per wickets and "
+                            "it is negatively correlated with the wickets taken so having a lower Avg is good."
                         ),
                         html.P(
-                            "In bowling, as having a lower strike rate is better, a strike rate lower than 15 or 10 is a good cut off to "
-                            "find good bowlers. And for bowling average, a player having a bowling average less than 20 is good."
+                            "Econ - Economy rate of a bowler is not so important compared to other metrics seen above if you are interested in "
+                            "predicting wickets. It just tell you if a bowler is economically good or not means if he gives less or more Runs per over. "
+                            "It doesn't say too much about a bowlers wicket taking capabilities."
                         ),
                     ],
                     style={"width": "80%"},
@@ -1086,10 +1051,8 @@ app.layout = html.Div(
         html.Div(
             [
                 html.P(
-                    "1. Even though Mumbai Indians won 1 more IPL title than Chennai Super Kings, "
-                    "On average CSK players tends to perform better than MI players. Not only the "
-                    "Players average runs are higher but also the number of wickets taken. Also "
-                    "CSK has a higher match winning percentage than MI. "
+                    "1. Although Mumbai Indians won more titles than CSK, On average CSK players performs "
+                    "better than MI. The average runs scored and wickets taken by CSK players is higher. "
                 ),
                 html.P(
                     "2. If a batsman is making more than 400 runs in a season and a bowler taking more "
@@ -1097,15 +1060,19 @@ app.layout = html.Div(
                     "exceptionally well compared to others. "
                 ),
                 html.P(
-                    "3. Apart from runs, measuring a batsman performance alone based on the Strike rate "
-                    "might not be the best idea. A better metric would be the average/total number of "
-                    "4s or 6s a batsman hits in a season respectively."
+                    "3. The most important features for predicting players runs are Ball Faced, Strike rate, "
+                    "4s, 6s and Batting avg(for more information look at the above FI section)."
                 ),
                 html.P(
-                    "4. And if we look at bowling metrics apart from wickets, it is much better to use "
-                    "Dot balls, Bowling strike rate(SR) and bowling average(avg) if you are interested in "
-                    "finding bowlers who can take more wickets for you than using Economy rate.Economy Rate "
-                    "only tells you if a bowler is more or less economical. It is what it is."
+                    "4. Whether a players is indian or from overseas, it doesn't have any effect on the performance, "
+                    "both tends to perform equally. We can't say overseas players are better than indian players."
+                ),
+                html.P(
+                    "4. Important features for predicting wickets are bowlers Strike rate, Dots, Bowling average and "
+                    "Economy. Although Economy rate of a bowler is not so important compared to other metrics mentioned "
+                    "if you are interested in predicting wickets. It just tell you if a bowler is economically good or not "
+                    "means if he gives less or more Runs per over. It doesn't say too much about a bowlers wicket taking capabilities "
+                    "(see the Bowlers FI section for more info)."
                 ),
                 html.Div([], style={"height": "20px"}),
             ],
@@ -1145,7 +1112,11 @@ def update_players_runs_ts(player_names):
         y0=406,
         x1=2019,
         y1=406,
-        line=dict(color="LightSeaGreen", width=2, dash="dashdot",),
+        line=dict(
+            color="LightSeaGreen",
+            width=2,
+            dash="dashdot",
+        ),
     ),
     fig.add_annotation(
         text=" 90% of the players<br>makes less than 400 runs<br>in a season.",
@@ -1159,7 +1130,9 @@ def update_players_runs_ts(player_names):
     )
 
     fig.update_layout(
-        xaxis=dict(title="Season"), yaxis=dict(title="Runs"), height=550,
+        xaxis=dict(title="Season"),
+        yaxis=dict(title="Runs"),
+        height=550,
     )
 
     return fig
@@ -1196,7 +1169,13 @@ def update_all_time_graph(metric, team):
         df = df[df["PLAYER"].isin(unique_player_list)]
         df = df.sort_values(by=metric, ascending=False)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=df[metric], y=df["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=df[metric],
+                y=df["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} (2008-2019)".format(team, metric),
             xaxis=dict(title="{}".format(metric)),
@@ -1245,7 +1224,13 @@ def update_batting_season_graph(metric, season, team):
         df = df.sort_values(by=metric, ascending=False)
         top_15 = df[:15]
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=top_15[metric], y=top_15["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=top_15[metric],
+                y=top_15["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} ({})".format(team, metric, season),
             xaxis=dict(title="{}".format(metric)),
@@ -1257,7 +1242,13 @@ def update_batting_season_graph(metric, season, team):
         df = df[df["Team"] == team]
         df = df.sort_values(by=metric, ascending=False)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=df[metric], y=df["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=df[metric],
+                y=df["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} ({})".format(team, metric, season),
             xaxis=dict(title="{}".format(metric)),
@@ -1356,7 +1347,13 @@ def update_all_time_graph_bowling(metric, team):
         df = df[df["PLAYER"].isin(unique_player_list)]
         df = df.sort_values(by=metric, ascending=asc)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=df[metric], y=df["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=df[metric],
+                y=df["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} (2008-2019)".format(team, metric),
             xaxis=dict(title="{}".format(metric)),
@@ -1422,7 +1419,13 @@ def update_batting_season_graph(metric, season, team):
         df = df.sort_values(by=metric, ascending=asc)
         top_15 = df[:15]
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=top_15[metric], y=top_15["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=top_15[metric],
+                y=top_15["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} ({})".format(team, metric, season),
             xaxis=dict(title="{}".format(metric)),
@@ -1434,7 +1437,13 @@ def update_batting_season_graph(metric, season, team):
         df = df[df["Team"] == team]
         df = df.sort_values(by=metric, ascending=asc)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=df[metric], y=df["PLAYER"], orientation="h",))
+        fig.add_trace(
+            go.Bar(
+                x=df[metric],
+                y=df["PLAYER"],
+                orientation="h",
+            )
+        )
         fig.update_layout(
             title="Top {} Players {} ({})".format(team, metric, season),
             xaxis=dict(title="{}".format(metric)),
@@ -1476,4 +1485,3 @@ def update_season_batting_table(metric, season, team):
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-
